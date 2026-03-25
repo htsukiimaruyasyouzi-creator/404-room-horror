@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>物件コード：404号室 - 内見</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -57,11 +57,14 @@
     </div>
     <div id="loading">パノラマを読み込み中...</div>
     <div id="controls">
-        マウスドラッグ：視点変更<br>
-        スクロール：ズーム<br>
-        赤い丸にカーソル合わせてクリック：移動<br>
-        D：角度表示 / W：強制侵食 / R：シーケンスリセット
+    <span id="controls-text"></span>
     </div>
+    <script>
+    const isMobile = ('ontouchstart' in window);
+    document.getElementById('controls-text').innerHTML = isMobile
+    ? '1本指ドラッグ：視点変更　2本指：ズーム　赤い丸タップ：移動'
+    : 'マウスドラッグ：視点変更　スクロール：ズーム　赤い丸クリック：移動';
+    </script>
 
     <!-- スクリプト読み込み（順序重要！） -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>

@@ -2648,33 +2648,43 @@ function animate() {
                     });
 
                     // かごめBGM
-                    window.anaSequence.kagomeAudio = playAudioFile(SOUNDS.kagome, 0.9, false);
-                    if (window.anaSequence.kagomeAudio) {
-                        window.anaSequence.kagomeAudio.addEventListener('ended', () => {
-                            // 終了2秒後に赤女フェーズへ
-                            setTimeout(() => {
-                                // 既に別フェーズなら何もしない
-                                if (!window.anaSequence.active || window.anaSequence.phase !== 'kagome') return;
+                    // 変更後
+                    const transitionToAka = () => {
+                    if (!window.anaSequence.active || window.anaSequence.phase !== 'kagome') return;
 
-                                const loader2 = new THREE.TextureLoader();
-                                loader2.load('akaonnnaima.png', (texture) => {
-                                    if (!sphere) return;
-                                    texture.colorSpace = THREE.SRGBColorSpace;
-                                    sphere.material.map = texture;
-                                    sphere.material.needsUpdate = true;
-                                });
+                  const loader2 = new THREE.TextureLoader();
+                  loader2.load('akaonnnaima.png', (texture) => {
+                 if (!sphere) return;
+                 texture.colorSpace = THREE.SRGBColorSpace;
+                 sphere.material.map = texture;
+                 sphere.material.needsUpdate = true;
+                 });
 
-                                window.anaSequence.phase = 'aka';
-                                window.anaSequence.lapCount = 0;
-                                window.anaSequence.gate2Passed = false;
-                                window.anaSequence.gate3Passed = false;
-                                console.log('[AnaSeq] Kagome ended → Aka phase start');
+                 window.anaSequence.phase = 'aka';
+                 window.anaSequence.lapCount = 0;
+                 window.anaSequence.gate2Passed = false;
+                 window.anaSequence.gate3Passed = false;
+                 window.anaSequence.kagomeFixed = false; // ★ 次回のためにリセット
+                 console.log('[AnaSeq] Kagome ended → Aka phase start');
 
-                                // 赤女BGMループ
-                                window.anaSequence.akaAudio = playAudioFile(SOUNDS.akanoima, 1.0, true);
-                            }, 2000);
-                        });
-                    }
+                window.anaSequence.akaAudio = playAudioFile(SOUNDS.akanoima, 1.0, true);
+        };
+
+window.anaSequence.kagomeAudio = playAudioFile(SOUNDS.kagome, 0.9, false);
+
+// ★ ended イベント（PC・一部スマホ）
+if (window.anaSequence.kagomeAudio) {
+    window.anaSequence.kagomeAudio.addEventListener('ended', () => {
+        setTimeout(transitionToAka, 2000);
+    });
+}
+
+// ★ スマホ向け強制フォールバック（曲の長さ＋3秒後に強制遷移）
+// kagome.mp3 の長さに合わせて秒数を調整してください
+const KAGOME_DURATION_MS = 30000; // ← kagome.mp3 の実際の長さ（ミリ秒）に変える
+window.anaSequence.kagomeFallbackTimer = setTimeout(() => {
+    transitionToAka();
+}, KAGOME_DURATION_MS + 2000);
 
                     // kagome1〜4をランダムに切り替え
                     const kagomeList = ['kagome1.png', 'kagome2.png', 'kagome3.png', 'kagome4.png'];

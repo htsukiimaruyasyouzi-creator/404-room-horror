@@ -348,12 +348,39 @@ function playAudioFile(path, volume = 1.0, loop = false) {
 window.playAudioSafe = function(path, volume, loop, onEnd) {
     const ctx = window.getAudioCtx();
 
-    // バッファキャッシュ済みならWeb Audio APIで即再生（rAF内でもOK）
+    // ★ suspendedでも即resume試行（ユーザー操作後なら必ず通る）
+    if (ctx && ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+    }
+
+    // バッファキャッシュ済み & ctxがrunning → Web Audio APIで即再生（rAF内でもOK）
     if (ctx && ctx.state === 'running' && window._audioBufferCache[path]) {
         return _playBuffer(ctx, window._audioBufferCache[path], volume, !!loop, onEnd);
     }
 
-    // キャッシュなし or ctxがsuspended→HTMLAudioElementで再生
+    // ★ バッファキャッシュ済みだがctxがまだsuspended → resume完了後にWeb Audio再生
+    if (ctx && ctx.state !== 'running' && window._audioBufferCache[path]) {
+        // ダミーオブジェクト（pauseで後から止められるように）
+        let srcRef = null;
+        const handle = {
+            pause: () => { try { if (srcRef) srcRef.pause(); } catch(e){} },
+            audio: null
+        };
+        ctx.resume().then(() => {
+            const inner = _playBuffer(ctx, window._audioBufferCache[path], volume, !!loop, onEnd);
+            srcRef = inner;
+        }).catch(() => {
+            // resume失敗時はHTMLAudioにフォールバック
+            const a = new Audio(path);
+            a.volume = volume; a.loop = !!loop;
+            a.play().catch(() => {});
+            if (onEnd && !loop) a.addEventListener('ended', onEnd);
+            srcRef = { pause: () => { try { a.pause(); a.currentTime = 0; } catch(e){} } };
+        });
+        return handle;
+    }
+
+    // キャッシュなし → HTMLAudioElementで再生（PCではほぼこれ）
     const a = new Audio(path);
     a.volume = volume;
     a.loop = !!loop;
@@ -2764,36 +2791,43 @@ function animate() {
 
             // 穴をだいたい見ているときだけ鈴を鳴らす
             if (dist < holeThreshold) {
+                // ★★★ スマホ対応：鈴はsetTimeoutベースで管理（rAF内タイマー積算廃止）★★★
                 // ズーム量に応じて「鈴が鳴る間隔」を変える
-                // 遠い: ゆっくり（約3秒に1回） / 近い: 速く（約0.3秒に1回）
-                const maxInterval = 3000; // ms
-                const minInterval = 300;  // ms
+                const maxInterval = 3000;
+                const minInterval = 300;
                 const interval = maxInterval - zoomAmount * (maxInterval - minInterval);
 
-                if (typeof window.anaSequence.suzuTimerMs !== 'number') {
-                    window.anaSequence.suzuTimerMs = 0;
-                }
-                window.anaSequence.suzuTimerMs += deltaTime;
-
-                if (window.anaSequence.suzuTimerMs >= interval) {
-                    window.anaSequence.suzuTimerMs = 0;
-                    // 単発で鈴を鳴らす
-                    if (window.anaSequence.suzuOneShotAudio) {
-                        try {
-                            window.anaSequence.suzuOneShotAudio.pause();
-                            window.anaSequence.suzuOneShotAudio.currentTime = 0;
-                        } catch (e) {}
-                        window.anaSequence.suzuOneShotAudio = null;
-                    }
-                    // ★★★ 鈴：rAF内でも確実に鳴らすためplayAudioSafeを使用 ★★★
-                    const _suzuHandle = window.playAudioSafe(SOUNDS.suzu, 1.0, false);
-                    window.anaSequence.suzuOneShotAudio = _suzuHandle ? (_suzuHandle.audio || _suzuHandle) : null;
-                    console.log('[AnaSeq] suzu再生試行');
+                // suzuTimeoutが未設定の場合のみ次の鈴をスケジュール
+                if (!window.anaSequence.suzuTimeout && !window.anaSequence.suzuScheduled) {
+                    window.anaSequence.suzuScheduled = true;
+                    window.anaSequence.suzuTimeout = setTimeout(() => {
+                        window.anaSequence.suzuTimeout = null;
+                        window.anaSequence.suzuScheduled = false;
+                        // フェーズが変わっていたら鳴らさない
+                        if (!window.anaSequence.active || window.anaSequence.phase !== 'hole') return;
+                        // 穴をまだ見ていなければ鳴らさない（distはクロージャで古いが許容）
+                        if (window.anaSequence.suzuOneShotAudio) {
+                            try {
+                                window.anaSequence.suzuOneShotAudio.pause();
+                                window.anaSequence.suzuOneShotAudio.currentTime = 0;
+                            } catch (e) {}
+                            window.anaSequence.suzuOneShotAudio = null;
+                        }
+                        const _suzuHandle = window.playAudioSafe(SOUNDS.suzu, 1.0, false);
+                        window.anaSequence.suzuOneShotAudio = _suzuHandle ? (_suzuHandle.audio || _suzuHandle) : null;
+                        console.log('[AnaSeq] suzu再生（setTimeout）');
+                    }, interval);
                 }
 
                 // MAXまで拡大したら次フェーズへ（一度だけ実行するためphaseを即変更）
                 if (zoomAmount > 0.97) {
                     window.anaSequence.suzuTimerMs = 0;
+                    // ★ setTimeoutベースの鈴スケジュールもキャンセル
+                    if (window.anaSequence.suzuTimeout) {
+                        clearTimeout(window.anaSequence.suzuTimeout);
+                        window.anaSequence.suzuTimeout = null;
+                    }
+                    window.anaSequence.suzuScheduled = false;
                     // いま鳴っている途中の鈴も強制停止
                     if (window.anaSequence.suzuOneShotAudio) {
                         try {
@@ -2901,7 +2935,13 @@ function animate() {
             } else {
                 // 穴から視線が外れたらタイマーをリセット（鈴は鳴らない）
                 window.anaSequence.suzuTimerMs = 0;
-                // 鳴っている途中の鈴も止めたい場合はここで停止
+                // ★ setTimeoutベースのスケジュールもキャンセル
+                if (window.anaSequence.suzuTimeout) {
+                    clearTimeout(window.anaSequence.suzuTimeout);
+                    window.anaSequence.suzuTimeout = null;
+                }
+                window.anaSequence.suzuScheduled = false;
+                // 鳴っている途中の鈴も止める
                 if (window.anaSequence.suzuOneShotAudio) {
                     try {
                         window.anaSequence.suzuOneShotAudio.pause();

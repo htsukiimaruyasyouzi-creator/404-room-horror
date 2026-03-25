@@ -2131,27 +2131,63 @@ function initEventListeners() {
         previousMousePosition = { x: e.clientX, y: e.clientY };
     });
 
-    document.addEventListener('touchstart', (e) => {
-        if ((isInputLocked || window.isInputLocked) || (e.target && e.target.closest('.hotspot-marker'))) return;
+    let pinchStartDistance = 0;
+let pinchStartFov = 75;
+
+function getTouchDistance(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+}
+
+document.addEventListener('touchstart', (e) => {
+    if ((isInputLocked || window.isInputLocked)) return;
+    if (e.target && e.target.closest('.hotspot-marker')) return;
+    if (e.touches.length === 2) {
+        isDragging = false;
+        pinchStartDistance = getTouchDistance(e.touches);
+        pinchStartFov = currentFov;
+    } else if (e.touches.length === 1) {
         isDragging = true;
         previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    }, { passive: false });
+    }
+ }, { passive: false });
 
-    document.addEventListener('touchend', () => isDragging = false);
+document.addEventListener('touchend', (e) => {
+    if (e.touches.length < 2) pinchStartDistance = 0;
+    if (e.touches.length === 0) isDragging = false;
+ });
 
-    document.addEventListener('touchmove', (e) => {
-        if ((isInputLocked || window.isInputLocked) || !isDragging) return;
-        e.preventDefault();
+document.addEventListener('touchmove', (e) => {
+    if ((isInputLocked || window.isInputLocked)) return;
+    e.preventDefault();
+    if (e.touches.length === 2) {
+        isDragging = false;
+        const dist = getTouchDistance(e.touches);
+        if (pinchStartDistance === 0) {
+            // touchstartで初期化できなかった場合ここで初期化
+            pinchStartDistance = dist;
+            pinchStartFov = currentFov;
+        } else {
+            const scale = pinchStartDistance / dist;
+            const minFov = window.CONFIG ? window.CONFIG.camera.minFov : 30;
+            const maxFov = window.CONFIG ? window.CONFIG.camera.maxFov : 100;
+            currentFov = Math.max(minFov, Math.min(maxFov, pinchStartFov * scale));
+            if (camera) { camera.fov = currentFov; camera.updateProjectionMatrix(); }
+        }
+    } else if (e.touches.length === 1 && isDragging) {
+        pinchStartDistance = 0;
         const deltaX = e.touches[0].clientX - previousMousePosition.x;
         const deltaY = e.touches[0].clientY - previousMousePosition.y;
-        const sensitivity = 0.005;
+        const sensitivity = 0.006;
         theta -= deltaX * sensitivity;
         phi -= deltaY * sensitivity;
         phi = Math.max(0.1, Math.min(Math.PI - 0.1, phi));
         window.theta = theta;
         window.phi = phi;
         previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-    }, { passive: false });
+    }
+ }, { passive: false });
 
     document.addEventListener('wheel', (e) => {
         if ((isInputLocked || window.isInputLocked) || !camera) return;

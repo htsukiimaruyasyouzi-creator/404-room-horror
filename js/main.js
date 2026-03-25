@@ -221,97 +221,173 @@ window.stopXRoomBgm = function() {
 };
 
 // ============================================
-// ★★★ スマホ音声ロック解除システム ★★★
-// iOSはユーザー操作なしにAudioを再生できない。
-// 最初のタップ/クリック時にAudioContextをresumeしてサイレントバッファを再生することで
-// 以降の new Audio().play() が全て通るようになる。
+// ★★★ スマホ音声システム（Web Audio API統一版）★★★
+// iOSはrequestAnimationFrame内のplay()をブロックする。
+// 解決策：Web Audio APIのAudioContextで全音声を管理し、
+// タッチイベント内でresumeすることでrAF内でも再生可能にする。
 // ============================================
+
+window._sharedAudioCtx = null;
 window._audioUnlocked = false;
-window._audioUnlockCallbacks = [];
 
-window.unlockAudio = function() {
-    if (window._audioUnlocked) return;
-
-    // Web Audio API でサイレントバッファを1回再生してロック解除
-    try {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (AudioCtx) {
-            const ctx = new AudioCtx();
-            const buf = ctx.createBuffer(1, 1, 22050);
-            const src = ctx.createBufferSource();
-            src.buffer = buf;
-            src.connect(ctx.destination);
-            src.start(0);
-            ctx.resume().then(() => {
-                window._audioUnlocked = true;
-                console.log('[Audio] ✅ AudioContext unlocked');
-                // 待機中のコールバックを全部実行
-                window._audioUnlockCallbacks.forEach(cb => { try { cb(); } catch(e){} });
-                window._audioUnlockCallbacks = [];
-            }).catch(e => {
-                console.warn('[Audio] resume failed:', e);
-            });
-        }
-    } catch(e) {
-        console.warn('[Audio] unlock error:', e);
+// AudioContextをシングルトンで取得
+window.getAudioCtx = function() {
+    if (!window._sharedAudioCtx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) window._sharedAudioCtx = new AC();
     }
-
-    // HTML5 Audio でも1回ダミー再生
-    try {
-        const dummy = new Audio();
-        dummy.volume = 0;
-        dummy.play().then(() => {
-            dummy.pause();
-            window._audioUnlocked = true;
-            console.log('[Audio] ✅ HTML5 Audio unlocked');
-        }).catch(() => {});
-    } catch(e) {}
+    return window._sharedAudioCtx;
 };
 
-// 最初のタップ/クリックでunlock
-['touchstart', 'touchend', 'mousedown', 'click', 'keydown'].forEach(evt => {
-    document.addEventListener(evt, function _unlock() {
-        window.unlockAudio();
-        // 1回だけでよいので、unlocked後に解除
-        if (window._audioUnlocked) {
-            ['touchstart', 'touchend', 'mousedown', 'click', 'keydown'].forEach(e2 => {
-                document.removeEventListener(e2, _unlock);
-            });
-        }
-    }, { passive: true });
+// タッチ/クリック時にAudioContextをresume（iOS必須）
+function _resumeAudioCtx() {
+    const ctx = window.getAudioCtx();
+    if (ctx && ctx.state === 'suspended') {
+        ctx.resume().then(() => {
+            window._audioUnlocked = true;
+            console.log('[Audio] ✅ AudioContext resumed, state:', ctx.state);
+        });
+    } else if (ctx && ctx.state === 'running') {
+        window._audioUnlocked = true;
+    }
+}
+['touchstart', 'touchend', 'touchmove', 'mousedown', 'click'].forEach(evt => {
+    document.addEventListener(evt, _resumeAudioCtx, { passive: true, once: false });
 });
 
-// ★★★ 汎用音声再生ヘルパー（スマホ対応版） ★★★
-// unlockされていない場合はコールバックキューに積んで、
-// unlock後に自動再生する
+// ★★★ Web Audio APIでmp3を再生するヘルパー ★★★
+// HTMLAudioElementはrAF内でブロックされるが、
+// AudioContext経由なら resume済みなら確実に鳴る。
+// ループ再生はAudioBufferSourceNode(loop=true)で対応。
+// 戻り値はstop()できるオブジェクト。
+window._audioBufferCache = {};
+
+function _loadAndPlay(path, volume, loop, onEnd) {
+    const ctx = window.getAudioCtx();
+    if (!ctx) {
+        // フォールバック: HTMLAudioElement
+        const a = new Audio(path);
+        a.volume = volume;
+        a.loop = loop;
+        a.play().catch(e => console.warn('[Audio] fallback play failed:', path, e));
+        return { pause: () => { a.pause(); a.currentTime = 0; }, audio: a };
+    }
+
+    // キャッシュ済みならそのまま使う
+    if (window._audioBufferCache[path]) {
+        return _playBuffer(ctx, window._audioBufferCache[path], volume, loop, onEnd);
+    }
+
+    // fetch→decodeAudioData でバッファをロード
+    fetch(path)
+        .then(r => r.arrayBuffer())
+        .then(ab => ctx.decodeAudioData(ab))
+        .then(buf => {
+            window._audioBufferCache[path] = buf;
+            // ロード完了時点でctxがrunningでなければresume
+            if (ctx.state === 'suspended') ctx.resume();
+        })
+        .catch(e => console.error('[Audio] load failed:', path, e));
+
+    // ロード中はHTMLAudioElementで再生（PCでは即時、スマホは遅延あり）
+    const a = new Audio(path);
+    a.volume = volume;
+    a.loop = loop;
+    a.play().catch(e => console.warn('[Audio] HTML5 play failed:', path, e));
+    if (onEnd && !loop) a.addEventListener('ended', onEnd);
+    return { pause: () => { try { a.pause(); a.currentTime = 0; } catch(e){} }, audio: a };
+}
+
+function _playBuffer(ctx, buf, volume, loop, onEnd) {
+    if (ctx.state === 'suspended') ctx.resume();
+    const gainNode = ctx.createGain();
+    gainNode.gain.value = volume;
+    gainNode.connect(ctx.destination);
+
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = loop;
+    src.connect(gainNode);
+    src.start(0);
+    if (onEnd && !loop) src.onended = onEnd;
+
+    return {
+        pause: () => {
+            try { src.stop(); } catch(e) {}
+            try { gainNode.disconnect(); } catch(e) {}
+        },
+        audio: null
+    };
+}
+
+// ★★★ 汎用音声再生ヘルパー（HTMLAudioElement版・既存コード互換）★★★
+// ループBGMやSEはこれで再生。HTMLAudioElementを返すので
+// .pause() .currentTime = 0 が既存コードのまま使える。
 function playAudioFile(path, volume = 1.0, loop = false) {
     try {
+        const ctx = window.getAudioCtx();
+        // AudioContextがrunning状態ならresume済み→HTMLAudioElementも鳴る
+        if (ctx && ctx.state === 'suspended') {
+            ctx.resume().catch(() => {});
+        }
         const audio = new Audio(path);
         audio.volume = volume;
         audio.loop = loop;
-
-        const doPlay = () => {
-            audio.play().catch(e => {
-                console.log('[Audio] Playback failed:', path, e);
-            });
-        };
-
-        if (window._audioUnlocked) {
-            doPlay();
-        } else {
-            // unlockされたら再生（ただし効果音は待ちすぎると不自然なので2秒以内のみ）
-            let queued = true;
-            const cb = () => { if (queued) { queued = false; doPlay(); } };
-            window._audioUnlockCallbacks.push(cb);
-            setTimeout(() => { queued = false; }, 2000); // 2秒超えたら再生しない
-        }
-
+        audio.play().catch(e => {
+            console.warn('[Audio] play failed (will retry on next touch):', path, e);
+        });
         return audio;
     } catch (e) {
         console.error('[Audio] Error:', path, e);
         return null;
     }
 }
+
+// ★★★ rAF内でも確実に鳴らしたい音専用の再生関数 ★★★
+// kagome.mp3 / suzu.mp3 / akanoima.mp3 はこれを使う
+window.playAudioSafe = function(path, volume, loop, onEnd) {
+    const ctx = window.getAudioCtx();
+
+    // バッファキャッシュ済みならWeb Audio APIで即再生（rAF内でもOK）
+    if (ctx && ctx.state === 'running' && window._audioBufferCache[path]) {
+        return _playBuffer(ctx, window._audioBufferCache[path], volume, !!loop, onEnd);
+    }
+
+    // キャッシュなし or ctxがsuspended→HTMLAudioElementで再生
+    const a = new Audio(path);
+    a.volume = volume;
+    a.loop = !!loop;
+    const p = a.play();
+    if (p) p.catch(e => console.warn('[Audio] playAudioSafe HTML5 failed:', path, e));
+    if (onEnd && !loop) a.addEventListener('ended', onEnd);
+    return { pause: () => { try { a.pause(); a.currentTime = 0; } catch(e){} }, audio: a };
+};
+
+// ★★★ 重要な音声ファイルを事前キャッシュ ★★★
+// ページ読み込み時に fetch→decode しておくことで
+// rAF内でバッファ再生できるようにする
+window._preloadAudioFiles = function() {
+    const ctx = window.getAudioCtx();
+    if (!ctx) return;
+    // ★ SOUNDS定数から正確なパスを取得
+    const preloadList = [
+        'sounds/suzu.mp3',
+        'sounds/kagome.mp3',
+        'sounds/akanoonnnaima.mp3',
+        'sounds/mamono_aaa.mp3'
+    ];
+    preloadList.forEach(path => {
+        if (window._audioBufferCache[path]) return;
+        fetch(path)
+            .then(r => r.arrayBuffer())
+            .then(ab => ctx.decodeAudioData(ab))
+            .then(buf => {
+                window._audioBufferCache[path] = buf;
+                console.log('[Audio] Preloaded:', path);
+            })
+            .catch(e => console.warn('[Audio] Preload failed:', path, e));
+    });
+};
 
 // ============================================
 // 影部屋（kage）BGM管理
@@ -653,6 +729,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initSystems();
     initTimeManager();
     initEventListeners();
+    // ★★★ 重要音声ファイルを事前キャッシュ（スマホrAF内再生対策）★★★
+    if (window._preloadAudioFiles) window._preloadAudioFiles();
     setupResizeHandlers();
     setupBeforeUnloadWarning();
     
@@ -2707,15 +2785,10 @@ function animate() {
                         } catch (e) {}
                         window.anaSequence.suzuOneShotAudio = null;
                     }
-                    // ★★★ 鈴：unlockAudio後なので直接play()★★★
-                    const _suzuAudio = new Audio(SOUNDS.suzu);
-                    _suzuAudio.volume = 1.0;
-                    window.anaSequence.suzuOneShotAudio = _suzuAudio;
-                    _suzuAudio.play().then(() => {
-                        console.log('[AnaSeq] ✅ suzu再生');
-                    }).catch(e => {
-                        console.warn('[AnaSeq] suzu再生失敗:', e);
-                    });
+                    // ★★★ 鈴：rAF内でも確実に鳴らすためplayAudioSafeを使用 ★★★
+                    const _suzuHandle = window.playAudioSafe(SOUNDS.suzu, 1.0, false);
+                    window.anaSequence.suzuOneShotAudio = _suzuHandle ? (_suzuHandle.audio || _suzuHandle) : null;
+                    console.log('[AnaSeq] suzu再生試行');
                 }
 
                 // MAXまで拡大したら次フェーズへ（一度だけ実行するためphaseを即変更）
@@ -2773,37 +2846,34 @@ function animate() {
                         window.anaSequence.kagomeFixed = false;
                         console.log('[AnaSeq] Kagome ended → Aka phase start');
 
-                        // ★★★ akaAudio再生（unlock済みなのでそのまま鳴る）★★★
-                        window.anaSequence.akaAudio = playAudioFile(SOUNDS.akanoima, 1.0, true);
+                        // ★★★ akaAudio再生：playAudioSafeでrAF外から呼ばれるが念のため ★★★
+                        const _akaHandle = window.playAudioSafe(SOUNDS.akanoima, 1.0, true);
+                        window.anaSequence.akaAudio = _akaHandle ? (_akaHandle.audio || _akaHandle) : null;
+                        console.log('[AnaSeq] akaAudio再生試行');
                     };
 
-                    // ★★★ kagome.mp3 再生（unlockAudio済み前提）★★★
-                    const _kagomeAudio = new Audio(SOUNDS.kagome);
-                    _kagomeAudio.volume = 0.9;
-                    _kagomeAudio.loop = false;
-                    window.anaSequence.kagomeAudio = _kagomeAudio;
-
-                    _kagomeAudio.addEventListener('ended', () => {
-                        console.log('[AnaSeq] kagome ended event');
-                        setTimeout(transitionToAka, 2000);
-                    });
-                    _kagomeAudio.addEventListener('error', (e) => {
-                        console.warn('[AnaSeq] kagome error:', e);
-                        // エラー時もフォールバックで進める
-                        setTimeout(transitionToAka, 3000);
-                    });
-
-                    _kagomeAudio.play().then(() => {
-                        console.log('[AnaSeq] ✅ kagome.mp3 再生開始');
-                    }).catch(e => {
-                        console.warn('[AnaSeq] kagome.mp3 再生失敗:', e);
-                        // 再生できなくてもシーケンスは進める（フォールバック）
-                        window.anaSequence.kagomeFallbackTimer = setTimeout(() => {
+                    // ★★★ kagome.mp3 再生：playAudioSafeでrAF内でも確実に鳴らす ★★★
+                    // onEndコールバックでendedを検知してtransitionToAkaを呼ぶ
+                    const _onKagomeEnd = () => {
+                        console.log('[AnaSeq] kagome ended');
+                        if (window.anaSequence.kagomeFallbackTimer) {
+                            clearTimeout(window.anaSequence.kagomeFallbackTimer);
                             window.anaSequence.kagomeFallbackTimer = null;
-                            transitionToAka();
-                        }, 5000);
-                        return;
-                    });
+                        }
+                        setTimeout(transitionToAka, 2000);
+                    };
+                    const _kagomeHandle = window.playAudioSafe(SOUNDS.kagome, 0.9, false, _onKagomeEnd);
+                    // HTMLAudioElementが返ってきた場合のerrorハンドリング
+                    if (_kagomeHandle && _kagomeHandle.audio) {
+                        window.anaSequence.kagomeAudio = _kagomeHandle.audio;
+                        _kagomeHandle.audio.addEventListener('error', () => {
+                            console.warn('[AnaSeq] kagome error');
+                            setTimeout(transitionToAka, 3000);
+                        });
+                    } else {
+                        window.anaSequence.kagomeAudio = _kagomeHandle;
+                    }
+                    console.log('[AnaSeq] kagome.mp3 再生試行');
 
                     // ★ 再生成功時のフォールバック（ended未発火対策）
                     // kagome.mp3 の実際の長さ（ミリ秒）に合わせて調整

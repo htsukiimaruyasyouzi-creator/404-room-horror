@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 Not Found</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: "Hiragino Kaku Gothic ProN", "Meiryo", sans-serif;
+            background: #fff;
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+            overflow: hidden;
+        }
+        
+        .container {
+            padding: 40px;
+        }
+        
+        h1 {
+            font-size: 72px;
+            color: #333;
+            margin-bottom: 20px;
+            font-weight: normal;
+            letter-spacing: 10px;
+        }
+        
+        .divider {
+            width: 60px;
+            height: 3px;
+            background: #e60012;
+            margin: 30px auto;
+        }
+        
+        p {
+            font-size: 16px;
+            color: #666;
+            line-height: 1.8;
+            margin-bottom: 10px;
+        }
+        
+        .redirect-msg {
+            margin-top: 40px;
+            font-size: 14px;
+            color: #999;
+            animation: blink 1.5s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .glitch {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .glitch::before,
+        .glitch::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .glitch::before {
+            left: 2px;
+            text-shadow: -1px 0 #ff0000;
+            clip: rect(44px, 450px, 56px, 0);
+            animation: glitch-anim 5s infinite linear alternate-reverse;
+        }
+        
+        .glitch::after {
+            left: -2px;
+            text-shadow: -1px 0 #0000ff;
+            clip: rect(44px, 450px, 56px, 0);
+            animation: glitch-anim2 5s infinite linear alternate-reverse;
+        }
+        
+        @keyframes glitch-anim {
+            0% { clip: rect(31px, 9999px, 94px, 0); }
+            20% { clip: rect(78px, 9999px, 20px, 0); }
+            40% { clip: rect(12px, 9999px, 6px, 0); }
+            60% { clip: rect(85px, 9999px, 33px, 0); }
+            80% { clip: rect(45px, 9999px, 78px, 0); }
+            100% { clip: rect(65px, 9999px, 12px, 0); }
+        }
+        
+        @keyframes glitch-anim2 {
+            0% { clip: rect(65px, 9999px, 99px, 0); }
+            20% { clip: rect(12px, 9999px, 45px, 0); }
+            40% { clip: rect(78px, 9999px, 12px, 0); }
+            60% { clip: rect(33px, 9999px, 85px, 0); }
+            80% { clip: rect(94px, 9999px, 31px, 0); }
+            100% { clip: rect(20px, 9999px, 78px, 0); }
+        }
+    </style>
+    <!-- ★★★ 修正：Untitled-1.html → Untitled-1.htm ★★★ -->
+    <meta http-equiv="refresh" content="3;url=Untitled-1.htm">
+</head>
+<body>
+    <div class="container">
+        <h1 class="glitch" data-text="404">404</h1>
+        <div class="divider"></div>
+        <p>お探しのページは見つかりませんでした。</p>
+        <p>The page you are looking for might have been removed,</p>
+        <p>had its name changed, or is temporarily unavailable.</p>
+        <p class="redirect-msg">3秒後にトップページへ戻ります...</p>
+    </div>
+    
+    <script>
+        // ★★★ 修正：Untitled-1.html → Untitled-1.htm ★★★
+        setTimeout(() => {
+            window.location.href = 'Untitled-1.htm';
+        }, 3000);
+        
+        // 微妙なノイズ演出
+        setInterval(() => {
+            if (Math.random() < 0.05) {
+                document.body.style.filter = 'contrast(1.1) brightness(0.95)';
+                setTimeout(() => {
+                    document.body.style.filter = 'none';
+                }, 50);
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

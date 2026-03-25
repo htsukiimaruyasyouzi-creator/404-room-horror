@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>【駅徒歩5分】ももちゃんマンション 404号室 - 賃貸物件詳細</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "Hiragino Kaku Gothic ProN", "Meiryo", "sans-serif";
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        /* ヘッダー */
+        .header {
+            background: #fff;
+            border-bottom: 2px solid #e60012;
+            padding: 15px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header-inner {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #e60012;
+            letter-spacing: -1px;
+        }
+        .logo span {
+            color: #333;
+            font-size: 14px;
+            font-weight: normal;
+            margin-left: 10px;
+        }
+        
+        /* メインコンテナ */
+        .container {
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        
+        /* バナー（常時表示） */
+        .midnight-banner {
+            display: block;
+            background: linear-gradient(90deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            border: 1px solid #e94560;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 10px rgba(233, 69, 96, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(233, 69, 96, 0.8); }
+        }
+        .midnight-banner h2 {
+            color: #e94560;
+            font-size: 18px;
+            margin-bottom: 5px;
+        }
+        
+        /* 物件ヘッダー */
+        .property-header {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .property-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .property-address {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+        
+        /* 価格エリア */
+        .price-box {
+            display: flex;
+            align-items: baseline;
+            gap: 20px;
+            padding: 15px;
+            background: #fff8f8;
+            border-left: 4px solid #e60012;
+            margin-bottom: 15px;
+        }
+        .price-main {
+            font-size: 32px;
+            font-weight: bold;
+            color: #e60012;
+        }
+        .price-main span {
+            font-size: 16px;
+            color: #333;
+        }
+        .price-sub {
+            font-size: 14px;
+            color: #666;
+        }
+        .price-note {
+            color: #e60012;
+            font-weight: bold;
+            font-size: 12px;
+        }
+        
+        /* ★★★ 写真ギャラリー（間取り図追加版）★★★ */
+        .photo-gallery {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            grid-template-rows: auto auto auto;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .photo-main {
+            grid-row: span 3; /* ★3枚分の高さに変更 */
+            background: #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+        .photo-main img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .photo-sub {
+            background: #ddd;
+            border-radius: 8px;
+            overflow: hidden;
+            aspect-ratio: 4/3;
+            position: relative;
+        }
+        .photo-sub img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: brightness(0.9);
+            transition: filter 0.3s;
+        }
+        /* ★★★ 間取り図用（背景白・object-fit: contain）★★★ */
+        .photo-sub.floor-plan {
+            background: #fff;
+            border: 1px solid #ddd;
+        }
+        .photo-sub.floor-plan img {
+            object-fit: contain;
+            filter: brightness(1);
+            background: #fff;
+        }
+        .photo-label {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: #fff;
+            padding: 5px 10px;
+            font-size: 12px;
+            border-radius: 4px;
+            z-index: 10;
+        }
+        
+        /* 物件情報テーブル */
+        .info-section {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            border-bottom: 2px solid #e60012;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        .info-grid {
+            display-grid: grid;
+            display: grid;
+            grid-template-columns: 120px 1fr;
+            gap: 15px;
+            font-size: 14px;
+        }
+        .info-label {
+            color: #666;
+            font-weight: bold;
+        }
+        .info-value {
+            color: #333;
+        }
+        .info-value .warning {
+            color: #e60012;
+            font-size: 12px;
+            display: block;
+            margin-top: 5px;
+        }
+        
+        /* ストリートビュー誘導 */
+        .streetview-box {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 2px solid #e94560;
+            background: linear-gradient(135deg, #fff5f5 0%, #ffe0e0 100%);
+            position: relative;
+            overflow: hidden;
+            animation: glow-box 2s infinite;
+        }
+        @keyframes glow-box {
+            0%, 100% { box-shadow: 0 0 5px rgba(230, 0, 18, 0.3); }
+            50% { box-shadow: 0 0 20px rgba(230, 0, 18, 0.6); }
+        }
+        .streetview-box::before {
+            content: '⚠️';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 24px;
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        .streetview-button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background: #e60012;
+            color: #fff;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            animation: glow 2s infinite;
+            box-shadow: 0 4px 6px rgba(230, 0, 18, 0.3);
+            font-size: 16px;
+            pointer-events: auto;
+            transition: all 0.3s;
+        }
+        .streetview-button:hover {
+            background: #c00000;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(230, 0, 18, 0.4);
+        }
+        .streetview-button.disabled {
+            background: #666 !important;
+            cursor: not-allowed !important;
+            animation: none !important;
+            box-shadow: none !important;
+            pointer-events: none !important;
+            opacity: 0.7;
+        }
+        .streetview-button.disabled:hover {
+            transform: none !important;
+            background: #666 !important;
+        }
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 5px rgba(230, 0, 18, 0.5); }
+            50% { box-shadow: 0 0 20px rgba(230, 0, 18, 0.8); }
+        }
+        .streetview-note {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #e60012;
+            font-weight: bold;
+            text-align: center;
+        }
+        .countdown {
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            color: #e60012;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        .disabled-note {
+            color: #666 !important;
+            font-size: 12px;
+            margin-top: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        /* 注意事項 */
+        .notice-box {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 4px;
+            font-size: 12px;
+            color: #666;
+        }
+        .notice-box ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+        .notice-box li {
+            margin-bottom: 5px;
+        }
+        
+        /* フッター */
+        .footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: #999;
+            font-size: 12px;
+        }
+        
+        /* スマホ対応 */
+        @media (max-width: 768px) {
+            .photo-gallery {
+                grid-template-columns: 1fr;
+            }
+            .photo-main {
+                grid-row: span 1;
+                aspect-ratio: 4/3;
+            }
+            .price-box {
+                flex-direction: column;
+            }
+            .info-grid {
+                grid-template-columns: 100px 1fr;
+            }
+        }
+
+        /* ========== 地獄帰還後の演出用追加スタイル ========== */
+        
+        #new-notification {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: #e60012;
+            color: #fff;
+            padding: 15px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            z-index: 10000;
+            font-weight: bold;
+            box-shadow: 0 4px 12px rgba(230, 0, 18, 0.4);
+            animation: notification-pulse 2s infinite;
+            display: none;
+            border: 2px solid #fff;
+        }
+        @keyframes notification-pulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 10px rgba(230, 0, 18, 0.4); }
+            50% { transform: scale(1.05); box-shadow: 0 0 25px rgba(230, 0, 18, 0.8); }
+        }
+        #new-notification::before {
+            content: '1';
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            background: #ff0000;
+            color: #fff;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            border: 2px solid #fff;
+            animation: blink 1s infinite;
+        }
+        
+        #horror-modal {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 20000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        #horror-modal.active { display: flex; }
+        .horror-content {
+            position: relative;
+            max-width: 90%;
+            max-height: 90%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #horror-image {
+            max-width: 100%;
+            max-height: 80vh;
+            object-fit: contain;
+            transition: all 0.1s;
+            box-shadow: 0 0 50px rgba(255, 0, 0, 0.3);
+        }
+        #close-btn {
+            position: absolute;
+            top: -50px; right: 0;
+            background: none; border: none;
+            color: #fff; font-size: 40px;
+            cursor: pointer;
+            width: 50px; height: 50px;
+            display: flex; align-items: center; justify-content: center;
+            transition: transform 0.2s;
+            z-index: 20001;
+        }
+        #close-btn:hover { transform: scale(1.2); color: #e60012; }
+        #update-msg {
+            color: #fff; text-align: center;
+            margin-top: 20px; font-size: 16px;
+            opacity: 0; transition: opacity 0.5s;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        
+        #moving-modal {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 30000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        #moving-modal.active { display: flex; }
+        .moving-content {
+            background: #fff;
+            padding: 40px;
+            border-radius: 8px;
+            text-align: center;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 0 50px rgba(230, 0, 18, 0.5);
+            animation: slide-in 0.3s ease-out;
+        }
+        @keyframes slide-in {
+            from { transform: translateY(-50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .moving-content h2 {
+            margin-bottom: 30px;
+            color: #333; font-size: 22px; line-height: 1.6;
+        }
+        .moving-buttons {
+            display: flex; gap: 20px;
+            justify-content: center; flex-wrap: wrap;
+        }
+        .moving-btn {
+            padding: 15px 40px; border: none;
+            border-radius: 4px; font-size: 18px;
+            cursor: pointer; transition: all 0.3s;
+            font-weight: bold; min-width: 120px;
+        }
+        #btn-yes {
+            background: #e60012; color: #fff;
+            box-shadow: 0 4px 6px rgba(230, 0, 18, 0.3);
+        }
+        #btn-yes:hover {
+            background: #c00000;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(230, 0, 18, 0.4);
+        }
+        #btn-no { background: #666; color: #fff; position: relative; }
+        #btn-no:hover { background: #555; }
+        #btn-no:disabled { opacity: 0.3; cursor: not-allowed; }
+        
+        .final-message {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: #000; color: #e60012;
+            display: none;
+            justify-content: center; align-items: center;
+            flex-direction: column;
+            font-size: 28px; font-family: serif;
+            z-index: 40000; text-align: center; line-height: 2;
+        }
+        .final-message.active { display: flex; }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        /* ========== ライトボックス ========== */
+        .photo-main img,
+        .photo-sub img {
+            cursor: zoom-in;
+        }
+
+        #lightbox {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.92);
+            z-index: 50000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        #lightbox.open {
+            display: flex;
+        }
+
+        /* 閉じるボタン */
+        #lb-close {
+            position: fixed;
+            top: 18px; right: 22px;
+            color: #fff;
+            font-size: 38px;
+            cursor: pointer;
+            line-height: 1;
+            z-index: 50001;
+            transition: color 0.2s, transform 0.2s;
+            user-select: none;
+        }
+        #lb-close:hover { color: #e60012; transform: scale(1.15); }
+
+        /* 画像カウンター */
+        #lb-counter {
+            position: fixed;
+            top: 22px; left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255,255,255,0.7);
+            font-size: 13px;
+            letter-spacing: 2px;
+            z-index: 50001;
+            font-family: 'Courier New', monospace;
+        }
+
+        /* 画像本体 */
+        #lb-img {
+            max-width: 88vw;
+            max-height: 82vh;
+            object-fit: contain;
+            border-radius: 4px;
+            box-shadow: 0 0 40px rgba(0,0,0,0.8);
+            transition: opacity 0.18s ease;
+            user-select: none;
+            display: block;
+        }
+
+        /* ラベル */
+        #lb-label {
+            position: fixed;
+            bottom: 60px; left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255,255,255,0.85);
+            font-size: 14px;
+            background: rgba(0,0,0,0.5);
+            padding: 5px 16px;
+            border-radius: 20px;
+            z-index: 50001;
+            white-space: nowrap;
+        }
+
+        /* 前後ボタン */
+        #lb-prev, #lb-next {
+            position: fixed;
+            top: 50%; 
+            transform: translateY(-50%);
+            background: rgba(255,255,255,0.12);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: #fff;
+            font-size: 28px;
+            width: 52px; height: 52px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            z-index: 50001;
+            transition: background 0.2s, border-color 0.2s, transform 0.15s;
+            user-select: none;
+        }
+        #lb-prev { left: 18px; }
+        #lb-next { right: 18px; }
+        #lb-prev:hover, #lb-next:hover {
+            background: rgba(230, 0, 18, 0.5);
+            border-color: #e60012;
+            transform: translateY(-50%) scale(1.08);
+        }
+        #lb-prev.hidden, #lb-next.hidden {
+            opacity: 0.2;
+            pointer-events: none;
+        }
+
+        /* スマホ */
+        @media (max-width: 768px) {
+            #lb-prev { left: 8px; }
+            #lb-next { right: 8px; }
+            #lb-prev, #lb-next { width: 42px; height: 42px; font-size: 22px; }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-inner">
+            <div class="logo">あなた専用の物件サイト <span>あなたの理想のお部屋探し</span></div>
+            <nav style="font-size: 14px; color: #666;">
+                検索 | マイページ | お問い合わせ
+            </nav>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- バナー（常時表示） -->
+        <div class="midnight-banner">
+            <h2>⚠️ 特別公開中 ⚠️</h2>
+            <p>この物件は現在特別に公開されています</p>
+            <p style="font-size: 12px; margin-top: 5px; opacity: 0.8;">現在の時刻: <span id="current-time"></span></p>
+        </div>
+
+        <div class="property-header">
+            <h1 class="property-title">ももちゃんマンション 404号室</h1>
+            <p class="property-address">東京都██区██町 ██-██</p>
+            
+            <div class="price-box">
+                <div class="price-main">1万円<span>/月</span></div>
+                <div>
+                    <div class="price-sub">管理費込み | 敷金0礼金0</div>
+                    <div class="price-note">※初期費用特別キャンペーン実施中</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ★★★ 写真ギャラリー（間取り図追加）★★★ -->
+        <div class="photo-gallery">
+            <!-- メイン：居室（左・3枚分の高さ） -->
+            <div class="photo-main">
+                <img src="naikenn1.png" alt="居室">
+                <span class="photo-label">居室（6帖）</span>
+            </div>
+            <!-- サブ1：玄関 -->
+            <div class="photo-sub">
+                <img src="naikenn2.png" alt="玄関">
+                <span class="photo-label">玄関</span>
+            </div>
+            <!-- サブ2：浴室 -->
+            <div class="photo-sub">
+                <img src="naikenn4.png" alt="浴室">
+                <span class="photo-label">浴室</span>
+            </div>
+            <!-- ★★★ サブ3：間取り図（新規追加）★★★ -->
+            <div class="photo-sub floor-plan">
+                <img src="zumenn.png" alt="間取り図">
+                <span class="photo-label">間取り図</span>
+            </div>
+        </div>
+
+        <!-- 物件詳細 -->
+        <div class="info-section">
+            <h2 class="section-title">物件情報</h2>
+            <div class="info-grid">
+                <div class="info-label">賃料</div>
+                <div class="info-value">1万円（管理費込み）</div>
+                
+                <div class="info-label">間取り</div>
+                <div class="info-value">2K（6帖+4.5帖）</div>
+                
+                <div class="info-label">築年数</div>
+                <div class="info-value">██年（情報非公開）
+                    <span class="warning">※リフォーム済みのため綺麗です</span>
+                </div>
+                
+                <div class="info-label">階数</div>
+                <div class="info-value">4階/4階建</div>
+                
+                <div class="info-label">向き</div>
+                <div class="info-value">北向き</div>
+                
+                <div class="info-label">専有面積</div>
+                <div class="info-value">35.00㎡</div>
+                
+                <div class="info-label">交通</div>
+                <div class="info-value">██線「██駅」徒歩5分</div>
+                
+                <div class="info-label">入居条件</div>
+                <div class="info-value">単身者限定・ペット不可・楽器不可
+                    <span class="warning">※家賃保証人不要</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ストリートビュー誘導 -->
+        <div class="streetview-box" id="streetview-container">
+            <h3 style="margin-bottom: 15px; font-size: 16px;">🖼️ 内見360°パノラマ</h3>
+            <a href="./404room.htm" id="streetview-btn" class="streetview-button">
+                ストリートビューで内見する（10分間限定）
+            </a>
+            <p class="streetview-note" id="streetview-note">
+                ⚠️ ご注意：10分を経過されますと自動的に終了となります
+                <span class="countdown">残り時間: <span id="timer">10:00</span></span>
+            </p>
+        </div>
+
+        <!-- 注意事項 -->
+        <div class="notice-box">
+            <strong>【ご案内について】</strong>
+            <ul>
+                <li>内見は完全予約制となっております。</li>
+                <li>写真はリフォーム前のものです。現状を優先します。</li>
+                <li>ストリートビューでの内見は<strong>10分間のみ</strong>ご覧いただけます。10分を過ぎますと、体調に異変をきたす場合がありますのでご注意ください。</li>
+                <li>夜間の内見はお控えください。</li>
+            </ul>
+        </div>
+
+        <div class="footer">
+            <p>© 2024 不動産屋██ ████</p>
+            <p style="margin-top: 10px; font-size: 10px; opacity: 0.5;">
+                物件コード：404-404-404
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // 時計表示
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('current-time').textContent = 
+                now.toLocaleTimeString('ja-JP');
+        }
+        
+        function startCountdown() {
+            let seconds = 600;
+            const timerEl = document.getElementById('timer');
+            if (!timerEl) return;
+            const interval = setInterval(() => {
+                seconds--;
+                const mins = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                timerEl.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+                if (seconds <= 0) {
+                    clearInterval(interval);
+                    timerEl.textContent = "終了";
+                }
+            }, 1000);
+        }
+        
+        updateTime();
+        setInterval(updateTime, 60000);
+        
+        // 写真ホバー時の演出
+        document.querySelectorAll('.photo-sub:not(.floor-plan) img').forEach(img => {
+            img.addEventListener('mouseenter', function() {
+                if (Math.random() < 0.1) {
+                    this.style.filter = 'brightness(1.2) contrast(1.2) hue-rotate(180deg)';
+                    setTimeout(() => {
+                        this.style.filter = 'brightness(0.9)';
+                    }, 50);
+                }
+            });
+        });
+        
+        // ストリートビューボタンの通常動作
+        const streetviewBtn = document.getElementById('streetview-btn');
+        if (streetviewBtn) {
+            streetviewBtn.addEventListener('click', function(e) {
+                const confirmed = confirm('【重要】\n\n・内見は10分間のみ有効です\n・時間経過で自動的に終了します\n・部屋の中を自由に見て回れます\n\n内見を開始しますか？');
+                if (confirmed) {
+                    startCountdown();
+                } else {
+                    e.preventDefault();
+                }
+            });
+        }
+
+        // ========== ライトボックス ==========
+        document.addEventListener('DOMContentLoaded', function() {
+            const GALLERY = [
+                { src: 'naikenn1.png', label: '居室（6帖）' },
+                { src: 'naikenn2.png', label: '玄関' },
+                { src: 'naikenn4.png', label: '浴室' },
+                { src: 'zumenn.png',   label: '間取り図' }
+            ];
+
+            let currentIndex = 0;
+
+            const lb        = document.getElementById('lightbox');
+            const lbImg     = document.getElementById('lb-img');
+            const lbLabel   = document.getElementById('lb-label');
+            const lbCounter = document.getElementById('lb-counter');
+            const lbClose   = document.getElementById('lb-close');
+            const lbPrev    = document.getElementById('lb-prev');
+            const lbNext    = document.getElementById('lb-next');
+
+            function open(index) {
+                currentIndex = index;
+                render();
+                lb.classList.add('open');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function close() {
+                lb.classList.remove('open');
+                document.body.style.overflow = '';
+            }
+
+            function render() {
+                const item = GALLERY[currentIndex];
+                lbImg.style.opacity = '0';
+                setTimeout(() => {
+                    lbImg.src = item.src;
+                    lbImg.onload = () => { lbImg.style.opacity = '1'; };
+                    if (lbImg.complete) lbImg.style.opacity = '1';
+                }, 80);
+                lbLabel.textContent = item.label;
+                lbCounter.textContent = `${currentIndex + 1} / ${GALLERY.length}`;
+                lbPrev.classList.toggle('hidden', currentIndex === 0);
+                lbNext.classList.toggle('hidden', currentIndex === GALLERY.length - 1);
+            }
+
+            function prev() {
+                if (currentIndex > 0) { currentIndex--; render(); }
+            }
+            function next() {
+                if (currentIndex < GALLERY.length - 1) { currentIndex++; render(); }
+            }
+
+            // 各ギャラリー画像にクリックイベントを付与
+            document.querySelectorAll('.photo-main img, .photo-sub img').forEach(function(img) {
+                img.style.cursor = 'zoom-in';
+                img.addEventListener('click', function() {
+                    const src = this.getAttribute('src');
+                    const idx = GALLERY.findIndex(function(g) { return g.src === src; });
+                    open(idx >= 0 ? idx : 0);
+                });
+            });
+
+            lbClose.addEventListener('click', close);
+            lbPrev.addEventListener('click', prev);
+            lbNext.addEventListener('click', next);
+
+            lb.addEventListener('click', function(e) {
+                if (e.target === lb) close();
+            });
+
+            document.addEventListener('keydown', function(e) {
+                if (!lb.classList.contains('open')) return;
+                if (e.key === 'ArrowLeft')  prev();
+                if (e.key === 'ArrowRight') next();
+                if (e.key === 'Escape')     close();
+            });
+
+            // スワイプ操作（スマホ用）
+            let touchStartX = 0;
+            lb.addEventListener('touchstart', function(e) {
+                touchStartX = e.touches[0].clientX;
+            }, { passive: true });
+            lb.addEventListener('touchend', function(e) {
+                const diff = touchStartX - e.changedTouches[0].clientX;
+                if (Math.abs(diff) > 50) { diff > 0 ? next() : prev(); }
+            });
+        });
+
+        // ========== 地獄帰還後の演出システム ==========
+        (function() {
+            let strobeAudio = null;
+            let na2Audio = null;
+            let nigasanaiAudio = null;
+            
+            window.addEventListener('load', () => {
+                if (localStorage.getItem('returnFromHell') === 'true') {
+                    localStorage.removeItem('returnFromHell');
+                    disableStreetviewButton();
+                    showNewNotification();
+                }
+
+                // ★★★ タイムアウト帰還（内見終了）を検知 ★★★
+                if (localStorage.getItem('sessionEnded') === 'true') {
+                    localStorage.removeItem('sessionEnded');
+                    disableStreetviewButton();
+                    console.log('[Home] 内見終了タイムアウト - ボタン無効化');
+                }
+            });
+            
+            function disableStreetviewButton() {
+                const btn = document.getElementById('streetview-btn');
+                const note = document.getElementById('streetview-note');
+                const container = document.getElementById('streetview-container');
+                if (btn) {
+                    btn.removeAttribute('href');
+                    btn.onclick = function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        alert('この物件の内見は既に終了しています。');
+                        return false;
+                    };
+                    btn.classList.add('disabled');
+                    btn.textContent = '内見は終了しました';
+                }
+                if (note) {
+                    note.innerHTML = '<span class="disabled-note">※内見は既に完了しています。契約手続きを進めてください。</span>';
+                }
+                if (container) {
+                    container.style.borderColor = '#666';
+                    container.style.background = 'linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%)';
+                    container.style.animation = 'none';
+                }
+            }
+            
+            function showNewNotification() {
+                const existing = document.getElementById('new-notification');
+                if (existing) existing.remove();
+                
+                const badge = document.createElement('div');
+                badge.id = 'new-notification';
+                badge.innerHTML = '1件の新着があります';
+                badge.onclick = openHorrorGallery;
+                document.body.appendChild(badge);
+                
+                setTimeout(() => {
+                    badge.style.display = 'block';
+                }, 500);
+
+                // ★★★ 通知音を再生 ★★★
+                setTimeout(() => {
+                    const notifyAudio = new Audio('sounds/notification.mp3');
+                    notifyAudio.volume = 0.7;
+                    notifyAudio.play().catch(e => console.log('[Audio] 通知音失敗:', e));
+                }, 600);
+            }
+            
+            function openHorrorGallery() {
+                const badge = document.getElementById('new-notification');
+                if (badge) badge.style.display = 'none';
+                
+                const modal = document.createElement('div');
+                modal.id = 'horror-modal';
+                modal.innerHTML = `
+                    <div class="horror-content">
+                        <button id="close-btn">×</button>
+                        <img id="horror-image" src="na1.png" alt="">
+                        <div id="update-msg">画像が更新されました</div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                
+                setTimeout(() => {
+                    modal.classList.add('active');
+                    document.getElementById('update-msg').style.opacity = '1';
+                }, 100);
+                
+                let closeCount = 0;
+                const closeBtn = document.getElementById('close-btn');
+                const img = document.getElementById('horror-image');
+                
+                closeBtn.onclick = function() {
+                    closeCount++;
+                    if (closeCount === 1) {
+                        img.src = 'na2.png';
+                        img.style.filter = 'brightness(0.8) contrast(1.2) grayscale(0.3)';
+                        this.style.color = '#e60012';
+                        document.body.style.animation = 'shake 0.5s';
+                        setTimeout(() => { document.body.style.animation = ''; }, 500);
+                    } else if (closeCount === 2) {
+                        this.style.display = 'none';
+                        startStrobeSequence();
+                    }
+                };
+            }
+            
+            function startStrobeSequence() {
+                const img = document.getElementById('horror-image');
+                const updateMsg = document.getElementById('update-msg');
+                updateMsg.style.opacity = '0';
+                
+                strobeAudio = new Audio('sounds/na1.mp3');
+                strobeAudio.loop = true;
+                strobeAudio.volume = 0.8;
+                strobeAudio.play().catch(e => console.log('[Audio] na1.mp3 play failed:', e));
+                
+                let count = 0;
+                const maxCount = 50;
+                const interval = setInterval(() => {
+                    img.src = count % 2 === 0 ? 'na1.png' : 'na2.png';
+                    img.style.filter = 'brightness(1.1) contrast(1.1)';
+                    count++;
+                    if (count >= maxCount) {
+                        clearInterval(interval);
+                        if (strobeAudio) {
+                            strobeAudio.pause();
+                            strobeAudio.currentTime = 0;
+                            strobeAudio = null;
+                        }
+                        showNaikenn3();
+                    }
+                }, 100);
+            }
+            
+            function showNaikenn3() {
+                const img = document.getElementById('horror-image');
+                img.src = 'na3.png';
+                img.style.filter = 'brightness(0.9)';
+                img.style.transition = 'all 0.3s';
+                setTimeout(() => {
+                    img.src = 'na4.png';
+                    img.style.transform = 'scale(1.05)';
+                    img.style.filter = 'brightness(1) contrast(1.2)';
+                    na2Audio = new Audio('sounds/na2.mp3');
+                    na2Audio.volume = 1.0;
+                    na2Audio.play().catch(e => console.log('[Audio] na2.mp3 play failed:', e));
+                    setTimeout(showMovingModal, 500);
+                }, 3000);
+            }
+            
+            function showMovingModal() {
+                const modal = document.createElement('div');
+                modal.id = 'moving-modal';
+                modal.innerHTML = `
+                    <div class="moving-content">
+                        <h2>この部屋に引っ越しますか？</h2>
+                        <div class="moving-buttons">
+                            <button id="btn-yes" class="moving-btn">はい</button>
+                            <button id="btn-no" class="moving-btn">いいえ</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+                setTimeout(() => { modal.classList.add('active'); }, 100);
+                
+                let noCount = 0;
+                const btnNo = document.getElementById('btn-no');
+                const btnYes = document.getElementById('btn-yes');
+                
+                btnNo.onclick = function() {
+                    noCount++;
+                    if (noCount === 1) {
+                        this.style.opacity = '0.8';
+                    } else if (noCount === 2) {
+                        this.style.opacity = '0.5';
+                        this.style.transform = 'scale(0.95)';
+                    } else if (noCount >= 3) {
+                        this.disabled = true;
+                        this.style.opacity = '0.2';
+                        btnYes.style.transform = 'scale(1.3)';
+                        btnYes.style.boxShadow = '0 0 30px rgba(230, 0, 18, 0.9)';
+                        btnYes.style.animation = 'pulse 0.5s infinite';
+                        const h2 = modal.querySelector('h2');
+                        h2.innerHTML = 'この部屋に引っ越しますか？<br><span style="color: #e60012; font-size: 16px; display: block; margin-top: 10px;">選択肢は「はい」のみです</span>';
+                        const flash = document.createElement('div');
+                        flash.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255, 0, 0, 0.3); pointer-events: none; z-index: 30001;';
+                        document.body.appendChild(flash);
+                        setTimeout(() => flash.remove(), 200);
+                    }
+                };
+                
+                btnYes.onclick = function() {
+                    nigasanaiAudio = new Audio('sounds/nigasanai.mp3');
+                    nigasanaiAudio.volume = 1.0;
+                    nigasanaiAudio.play().catch(e => console.log('[Audio] nigasanai.mp3 play failed:', e));
+                    modal.classList.remove('active');
+                    const finalMsg = document.createElement('div');
+                    finalMsg.className = 'final-message';
+                    finalMsg.innerHTML = `
+                        <div>物件コード：404</div>
+                        <div style="font-size: 48px; margin: 20px 0;">契約完了</div>
+                        <div style="font-size: 18px; color: #666;">あなたはもう逃げられない</div>
+                        <div style="font-size: 14px; margin-top: 40px; color: #444;">3秒後に画面を閉じます...</div>
+                    `;
+                    document.body.appendChild(finalMsg);
+                    setTimeout(() => { finalMsg.classList.add('active'); }, 100);
+                    setTimeout(() => { window.location.href = './youaretrapped-404-notfound'; }, 3000);
+                };
+            }
+        })();
+    </script>    <!-- ライトボックス -->
+    <div id="lightbox">
+        <span id="lb-close">×</span>
+        <div id="lb-counter">1 / 4</div>
+        <button id="lb-prev">&#8592;</button>
+        <img id="lb-img" src="" alt="">
+        <button id="lb-next">&#8594;</button>
+        <div id="lb-label"></div>
+    </div>
+
+</body>
+</html>

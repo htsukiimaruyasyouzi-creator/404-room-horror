@@ -220,13 +220,92 @@ window.stopXRoomBgm = function() {
     }
 };
 
-// ★★★ 汎用音声再生ヘルパー ★★★
+// ============================================
+// ★★★ スマホ音声ロック解除システム ★★★
+// iOSはユーザー操作なしにAudioを再生できない。
+// 最初のタップ/クリック時にAudioContextをresumeしてサイレントバッファを再生することで
+// 以降の new Audio().play() が全て通るようになる。
+// ============================================
+window._audioUnlocked = false;
+window._audioUnlockCallbacks = [];
+
+window.unlockAudio = function() {
+    if (window._audioUnlocked) return;
+
+    // Web Audio API でサイレントバッファを1回再生してロック解除
+    try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) {
+            const ctx = new AudioCtx();
+            const buf = ctx.createBuffer(1, 1, 22050);
+            const src = ctx.createBufferSource();
+            src.buffer = buf;
+            src.connect(ctx.destination);
+            src.start(0);
+            ctx.resume().then(() => {
+                window._audioUnlocked = true;
+                console.log('[Audio] ✅ AudioContext unlocked');
+                // 待機中のコールバックを全部実行
+                window._audioUnlockCallbacks.forEach(cb => { try { cb(); } catch(e){} });
+                window._audioUnlockCallbacks = [];
+            }).catch(e => {
+                console.warn('[Audio] resume failed:', e);
+            });
+        }
+    } catch(e) {
+        console.warn('[Audio] unlock error:', e);
+    }
+
+    // HTML5 Audio でも1回ダミー再生
+    try {
+        const dummy = new Audio();
+        dummy.volume = 0;
+        dummy.play().then(() => {
+            dummy.pause();
+            window._audioUnlocked = true;
+            console.log('[Audio] ✅ HTML5 Audio unlocked');
+        }).catch(() => {});
+    } catch(e) {}
+};
+
+// 最初のタップ/クリックでunlock
+['touchstart', 'touchend', 'mousedown', 'click', 'keydown'].forEach(evt => {
+    document.addEventListener(evt, function _unlock() {
+        window.unlockAudio();
+        // 1回だけでよいので、unlocked後に解除
+        if (window._audioUnlocked) {
+            ['touchstart', 'touchend', 'mousedown', 'click', 'keydown'].forEach(e2 => {
+                document.removeEventListener(e2, _unlock);
+            });
+        }
+    }, { passive: true });
+});
+
+// ★★★ 汎用音声再生ヘルパー（スマホ対応版） ★★★
+// unlockされていない場合はコールバックキューに積んで、
+// unlock後に自動再生する
 function playAudioFile(path, volume = 1.0, loop = false) {
     try {
         const audio = new Audio(path);
         audio.volume = volume;
         audio.loop = loop;
-        audio.play().catch(e => console.log('[Audio] Playback failed:', path, e));
+
+        const doPlay = () => {
+            audio.play().catch(e => {
+                console.log('[Audio] Playback failed:', path, e);
+            });
+        };
+
+        if (window._audioUnlocked) {
+            doPlay();
+        } else {
+            // unlockされたら再生（ただし効果音は待ちすぎると不自然なので2秒以内のみ）
+            let queued = true;
+            const cb = () => { if (queued) { queued = false; doPlay(); } };
+            window._audioUnlockCallbacks.push(cb);
+            setTimeout(() => { queued = false; }, 2000); // 2秒超えたら再生しない
+        }
+
         return audio;
     } catch (e) {
         console.error('[Audio] Error:', path, e);
@@ -2628,10 +2707,18 @@ function animate() {
                         } catch (e) {}
                         window.anaSequence.suzuOneShotAudio = null;
                     }
-                    window.anaSequence.suzuOneShotAudio = playAudioFile(SOUNDS.suzu, 1.0, false);
+                    // ★★★ 鈴：unlockAudio後なので直接play()★★★
+                    const _suzuAudio = new Audio(SOUNDS.suzu);
+                    _suzuAudio.volume = 1.0;
+                    window.anaSequence.suzuOneShotAudio = _suzuAudio;
+                    _suzuAudio.play().then(() => {
+                        console.log('[AnaSeq] ✅ suzu再生');
+                    }).catch(e => {
+                        console.warn('[AnaSeq] suzu再生失敗:', e);
+                    });
                 }
 
-                // MAXまで拡大したら次フェーズへ
+                // MAXまで拡大したら次フェーズへ（一度だけ実行するためphaseを即変更）
                 if (zoomAmount > 0.97) {
                     window.anaSequence.suzuTimerMs = 0;
                     // いま鳴っている途中の鈴も強制停止
@@ -2643,7 +2730,7 @@ function animate() {
                         window.anaSequence.suzuOneShotAudio = null;
                     }
 
-                    // かごめフェーズ開始
+                    // ★ 先にphaseを変えることで次フレームでこのブロックに再入しない
                     window.anaSequence.phase = 'kagome';
                     window.anaSequence.kagomeStartTime = currentTime;
                     console.log('[AnaSeq] Max zoom reached → Kagome phase start');
@@ -2656,57 +2743,76 @@ function animate() {
                         sphere.material.needsUpdate = true;
                     });
 
-                    // かごめBGM
-                    // 変更後
+                    // ★★★ transitionToAka：かごめ終了→赤女フェーズ ★★★
                     const transitionToAka = () => {
-                    if (!window.anaSequence.active || window.anaSequence.phase !== 'kagome') return;
+                        if (!window.anaSequence.active || window.anaSequence.phase !== 'kagome') return;
 
-                  const loader2 = new THREE.TextureLoader();
-                  loader2.load('akaonnnaima.png', (texture) => {
-                 if (!sphere) return;
-                 texture.colorSpace = THREE.SRGBColorSpace;
-                 sphere.material.map = texture;
-                 sphere.material.needsUpdate = true;
-                 });
-
-                 window.anaSequence.phase = 'aka';
-                 window.anaSequence.lapCount = 0;
-                 window.anaSequence.gate2Passed = false;
-                 window.anaSequence.gate3Passed = false;
-                 window.anaSequence.kagomeFixed = false; // ★ 次回のためにリセット
-                 console.log('[AnaSeq] Kagome ended → Aka phase start');
-
-                    window.anaSequence.akaAudio = playAudioFile(SOUNDS.akanoima, 1.0, true);
-                    };
-
-                    // ★★★ スマホ対策：ユーザー操作済みなので play() を直接呼ぶ ★★★
-                    const _kagomeAudio = new Audio(SOUNDS.kagome);
-                    _kagomeAudio.volume = 0.9;
-                    _kagomeAudio.loop = false;
-                    window.anaSequence.kagomeAudio = _kagomeAudio;
-                    const _kagomePlayPromise = _kagomeAudio.play();
-                    if (_kagomePlayPromise !== undefined) {
-                        _kagomePlayPromise.catch(e => {
-                            console.warn("[AnaSeq] kagome.mp3 自動再生失敗（スマホ）:", e);
-                        });
-                    }
-
-                    // ★ ended イベント（PC・一部スマホ）
-                    _kagomeAudio.addEventListener('ended', () => {
+                        // フォールバックタイマーをキャンセル（ended側から呼ばれた場合）
                         if (window.anaSequence.kagomeFallbackTimer) {
                             clearTimeout(window.anaSequence.kagomeFallbackTimer);
                             window.anaSequence.kagomeFallbackTimer = null;
                         }
+                        // kagomeインターバル停止
+                        if (window.anaSequence.kagomeInterval) {
+                            clearInterval(window.anaSequence.kagomeInterval);
+                            window.anaSequence.kagomeInterval = null;
+                        }
+
+                        const loader2 = new THREE.TextureLoader();
+                        loader2.load('akaonnnaima.png', (texture) => {
+                            if (!sphere) return;
+                            texture.colorSpace = THREE.SRGBColorSpace;
+                            sphere.material.map = texture;
+                            sphere.material.needsUpdate = true;
+                        });
+
+                        window.anaSequence.phase = 'aka';
+                        window.anaSequence.lapCount = 0;
+                        window.anaSequence.gate2Passed = false;
+                        window.anaSequence.gate3Passed = false;
+                        window.anaSequence.kagomeFixed = false;
+                        console.log('[AnaSeq] Kagome ended → Aka phase start');
+
+                        // ★★★ akaAudio再生（unlock済みなのでそのまま鳴る）★★★
+                        window.anaSequence.akaAudio = playAudioFile(SOUNDS.akanoima, 1.0, true);
+                    };
+
+                    // ★★★ kagome.mp3 再生（unlockAudio済み前提）★★★
+                    const _kagomeAudio = new Audio(SOUNDS.kagome);
+                    _kagomeAudio.volume = 0.9;
+                    _kagomeAudio.loop = false;
+                    window.anaSequence.kagomeAudio = _kagomeAudio;
+
+                    _kagomeAudio.addEventListener('ended', () => {
+                        console.log('[AnaSeq] kagome ended event');
                         setTimeout(transitionToAka, 2000);
                     });
+                    _kagomeAudio.addEventListener('error', (e) => {
+                        console.warn('[AnaSeq] kagome error:', e);
+                        // エラー時もフォールバックで進める
+                        setTimeout(transitionToAka, 3000);
+                    });
 
-                    // ★ スマホ向け強制フォールバック（kagome.mp3の長さ＋3秒）
-                    // kagome.mp3 の実際の長さ（ミリ秒）に合わせて調整してください
+                    _kagomeAudio.play().then(() => {
+                        console.log('[AnaSeq] ✅ kagome.mp3 再生開始');
+                    }).catch(e => {
+                        console.warn('[AnaSeq] kagome.mp3 再生失敗:', e);
+                        // 再生できなくてもシーケンスは進める（フォールバック）
+                        window.anaSequence.kagomeFallbackTimer = setTimeout(() => {
+                            window.anaSequence.kagomeFallbackTimer = null;
+                            transitionToAka();
+                        }, 5000);
+                        return;
+                    });
+
+                    // ★ 再生成功時のフォールバック（ended未発火対策）
+                    // kagome.mp3 の実際の長さ（ミリ秒）に合わせて調整
                     const KAGOME_DURATION_MS = 30000;
                     window.anaSequence.kagomeFallbackTimer = setTimeout(() => {
                         window.anaSequence.kagomeFallbackTimer = null;
+                        console.log('[AnaSeq] kagome fallback timer fired');
                         transitionToAka();
-                    }, KAGOME_DURATION_MS + 2000);
+                    }, KAGOME_DURATION_MS + 3000);
 
                     // kagome1〜4をランダムに切り替え
                     const kagomeList = ['kagome1.png', 'kagome2.png', 'kagome3.png', 'kagome4.png'];

@@ -143,48 +143,36 @@ class KurokoHideAndSeek {
         this.lastRoom = roomKey;
     }
 
-    // ★★★ お風呂場「みつけた」演出シーケンス ★★★
     triggerBathroomFoundSequence(stageData) {
         console.log('[Kuroko] お風呂場 みつけた演出開始');
 
-        // このシーケンス中は完全に入力ロック
         window.isInputLocked = true;
         if (window.camera) {
-        window.camera.fov = 80;
-        window.camera.updateProjectionMatrix();
-     }
+            window.camera.fov = 80;
+            window.camera.updateProjectionMatrix();
+        }
 
-        // ① カメラを強制的に女の方向へ向ける
         this.forceCameraLook(stageData.forceCameraTheta, stageData.forceCameraPhi, 800, () => {
 
-            // ① 最初にkuro4.pngを表示
             this.stopAudio();
             this.loadTexture(stageData.girlImage || 'kuro4.png');
 
-            // ② 1回目「みつけた」音声（0mituketa2.mp3）
-            const audio1 = new Audio(stageData.audio);
-            audio1.volume = 0.9;
-            console.log('[Kuroko] みつけた①再生');
-
-            audio1.addEventListener('ended', () => {
+            // ② 1回目「みつけた」音声（playAudioSafe経由：iOS対応）
+            const _handle1 = window.playAudioSafe(stageData.audio, 0.9, false, () => {
                 console.log('[Kuroko] みつけた①終了 → kuro5.png & みつけた②へ');
 
-                // ③ kuro5.pngに切り替え
                 this.loadTexture(stageData.midImage || 'kuro5.png');
 
-                // ④ 2回目「みつけた」音声（mituketa2.mp3）
-                const audio2 = new Audio(stageData.audioSecond || stageData.audioAttack || stageData.audio);
-                audio2.volume = 1.0;
-                audio2.play().catch(e => console.error('[Kuroko] audio2失敗', e));
-                this.currentAudio = audio2;
+                // ④ 2回目「みつけた」音声
+                const _handle2 = window.playAudioSafe(
+                    stageData.audioSecond || stageData.audioAttack || stageData.audio,
+                    1.0, false
+                );
+                this.currentAudio = _handle2 && _handle2.audio ? _handle2.audio : _handle2;
 
-                // ⑤ 音声②が始まってから約1秒後にkuro6.png＋ズームイン
                 setTimeout(() => {
-                    // kuro6.pngをパノラマに貼り替えてFOVズームイン
                     this.loadTexture(stageData.finalImage || stageData.attackImage || 'kuro6.png');
                     this.startZoomIn(75, 70, 400, () => {
-                        // ズームイン完了 → 即座にFOVリセット＆image(4).pngに復帰
-                        // （音声②はそのまま最後まで流し続ける）
                         if (window.camera) {
                             window.camera.fov = 120;
                             window.camera.updateProjectionMatrix();
@@ -196,23 +184,20 @@ class KurokoHideAndSeek {
                         this.reset();
                         console.log('[Kuroko] かくれんぼ終了！通常モードに戻りました');
 
-                        // ★ ロックは維持したままloadRoomを呼ぶ
                         const bathroomIndex = window.ROOMS.findIndex(r => r.id === 'bathroom');
                         if (bathroomIndex !== -1 && typeof window.loadRoom === 'function') {
                             window.loadRoom(bathroomIndex);
                         }
 
-                        // ★ image(4).pngのテクスチャが確実にロードされてからロック解除（600ms待機）
                         setTimeout(() => {
                             window.isInputLocked = false;
-                            console.log('[Kuroko] 入力ロック解除（image(4).png表示確認後）');
+                            console.log('[Kuroko] 入力ロック解除');
                         }, 600);
                     });
                 }, 1000);
             });
-
-            audio1.play().catch(e => console.error('[Kuroko] audio1失敗', e));
-            this.currentAudio = audio1;
+            this.currentAudio = _handle1 && _handle1.audio ? _handle1.audio : _handle1;
+            console.log('[Kuroko] みつけた①再生');
         });
     }
 
@@ -254,30 +239,19 @@ class KurokoHideAndSeek {
         if (!stageData.audio) return;
         this.stopAudio();
 
-        const audio = new Audio(stageData.audio);
-        audio.volume = 0.85;
-        audio.loop = stageData.loop || false;
+        const onEnded = stageData.loop ? null : () => {
+            console.log(`[Kuroko] 音声終了: ステージ${this.stage}`);
+            this.onAudioEnded(stageData);
+        };
 
-        if (!stageData.loop) {
-            audio.addEventListener('ended', () => {
-                console.log(`[Kuroko] 音声終了: ステージ${this.stage}`);
-                this.onAudioEnded(stageData);
-            });
-        }
-
-        audio.play()
-            .then(() => console.log(`[Kuroko] 再生: ${stageData.audio}`))
-            .catch(e => console.error(`[Kuroko] 再生失敗: ${stageData.audio}`, e));
-
-        this.currentAudio = audio;
+        const handle = window.playAudioSafe(stageData.audio, 0.85, stageData.loop || false, onEnded);
+        this.currentAudio = handle && handle.audio ? handle.audio : handle;
+        console.log(`[Kuroko] 再生: ${stageData.audio}`);
 
         // ★★★ stage0（居室・あそぼー）のみ kuraiheya1.mp3 を同時再生 ★★★
         if (stageData.extraAudio) {
-            const extra = new Audio(stageData.extraAudio);
-            extra.volume = 0.7;
-            extra.loop = stageData.extraLoop || false;
-            extra.play().catch(e => console.error('[Kuroko] extraAudio失敗:', e));
-            this.extraAudio = extra;
+            const extraHandle = window.playAudioSafe(stageData.extraAudio, 0.7, stageData.extraLoop || false);
+            this.extraAudio = extraHandle && extraHandle.audio ? extraHandle.audio : extraHandle;
             console.log(`[Kuroko] extraAudio再生: ${stageData.extraAudio}`);
         }
     }
@@ -443,14 +417,21 @@ class KurokoHideAndSeek {
 
     stopAudio() {
         if (this.currentAudio) {
-            this.currentAudio.pause();
-            this.currentAudio.currentTime = 0;
+            try {
+                this.currentAudio.pause();
+                if (typeof this.currentAudio.currentTime === 'number') {
+                    this.currentAudio.currentTime = 0;
+                }
+            } catch(e) {}
             this.currentAudio = null;
         }
-        // ★ extraAudioも停止
         if (this.extraAudio) {
-            this.extraAudio.pause();
-            this.extraAudio.currentTime = 0;
+            try {
+                this.extraAudio.pause();
+                if (typeof this.extraAudio.currentTime === 'number') {
+                    this.extraAudio.currentTime = 0;
+                }
+            } catch(e) {}
             this.extraAudio = null;
         }
     }

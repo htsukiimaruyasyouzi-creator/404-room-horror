@@ -100,26 +100,18 @@ window.daRoomState = {
 // ★★★ ti部屋（ti1〜ti4）＆da部屋（da1〜da4）滞在中のループBGM ★★★
 window.tiLoopBgmAudio = null;
 window.playTiLoopBgm = function() {
-    if (window.tiLoopBgmAudio) {
-        try { window.tiLoopBgmAudio.play(); } catch (e) {}
-        return;
-    }
-    try {
-        const a = new Audio('sounds/ti.mp3');
-        a.loop = true;
-        a.volume = 0.9;
-        a.preload = 'auto';
-        window.tiLoopBgmAudio = a;
-        a.play().catch(() => {});
-    } catch (e) {
-        console.error('[ti BGM] init failed:', e);
-    }
+    if (window.tiLoopBgmAudio) return;
+    const handle = window.playAudioSafe('sounds/ti.mp3', 0.9, true);
+    // pause可能なオブジェクトとして保持
+    window.tiLoopBgmAudio = handle && handle.audio ? handle.audio : handle;
 };
 window.stopTiLoopBgm = function() {
     if (!window.tiLoopBgmAudio) return;
     try {
         window.tiLoopBgmAudio.pause();
-        window.tiLoopBgmAudio.currentTime = 0;
+        if (typeof window.tiLoopBgmAudio.currentTime === 'number') {
+            window.tiLoopBgmAudio.currentTime = 0;
+        }
     } catch (e) {}
     window.tiLoopBgmAudio = null;
 };
@@ -176,45 +168,26 @@ const XROOM_BGM = {
     }
 };
 
-// ★★★ X部屋BGM再生関数 ★★★
+// ★★★ X部屋BGM再生関数（iOS対応版）★★★
 window.playXRoomBgm = function(roomId) {
-    // 既存のBGMがあれば停止
     window.stopXRoomBgm();
-    
     const bgmConfig = XROOM_BGM[roomId];
-    if (!bgmConfig) {
-        console.log('[XRoom BGM] No BGM config for:', roomId);
-        return;
-    }
-    
-    try {
-        window.xRoomBgmAudio = new Audio(bgmConfig.path);
-        window.xRoomBgmAudio.volume = bgmConfig.volume;
-        window.xRoomBgmAudio.loop = true;  // ループ設定
-        window.xRoomBgmAudio.preload = 'auto';
-        
-        window.xRoomBgmAudio.play().then(() => {
-            window.xRoomBgmCurrent = roomId;
-            console.log('[XRoom BGM] Started:', roomId, 'Volume:', bgmConfig.volume);
-        }).catch(e => {
-            console.error('[XRoom BGM] Play failed:', e);
-        });
-        
-        window.xRoomBgmAudio.onerror = (e) => {
-            console.error('[XRoom BGM] Error:', roomId, e);
-        };
-        
-    } catch (e) {
-        console.error('[XRoom BGM] Init error:', e);
-    }
+    if (!bgmConfig) return;
+    const handle = window.playAudioSafe(bgmConfig.path, bgmConfig.volume, true);
+    window.xRoomBgmAudio = handle && handle.audio ? handle.audio : handle;
+    window.xRoomBgmCurrent = roomId;
+    console.log('[XRoom BGM] Started:', roomId);
 };
 
 // ★★★ X部屋BGM停止関数 ★★★
 window.stopXRoomBgm = function() {
     if (window.xRoomBgmAudio) {
-        window.xRoomBgmAudio.pause();
-        window.xRoomBgmAudio.currentTime = 0;
-        console.log('[XRoom BGM] Stopped:', window.xRoomBgmCurrent);
+        try {
+            window.xRoomBgmAudio.pause();
+            if (typeof window.xRoomBgmAudio.currentTime === 'number') {
+                window.xRoomBgmAudio.currentTime = 0;
+            }
+        } catch(e) {}
         window.xRoomBgmAudio = null;
         window.xRoomBgmCurrent = null;
     }
@@ -245,10 +218,13 @@ function _resumeAudioCtx() {
     if (ctx && ctx.state === 'suspended') {
         ctx.resume().then(() => {
             window._audioUnlocked = true;
-            console.log('[Audio] ✅ AudioContext resumed, state:', ctx.state);
+            console.log('[Audio] ✅ AudioContext resumed');
+            // ★ resume完了後にプリロード実行（iOSはresume後でないとdecodeAudioDataが失敗する）
+            if (window._preloadAudioFiles) window._preloadAudioFiles();
         });
     } else if (ctx && ctx.state === 'running') {
         window._audioUnlocked = true;
+        if (window._preloadAudioFiles) window._preloadAudioFiles();
     }
 }
 ['touchstart', 'touchend', 'touchmove', 'mousedown', 'click'].forEach(evt => {
@@ -323,24 +299,13 @@ function _playBuffer(ctx, buf, volume, loop, onEnd) {
 // ★★★ 汎用音声再生ヘルパー（HTMLAudioElement版・既存コード互換）★★★
 // ループBGMやSEはこれで再生。HTMLAudioElementを返すので
 // .pause() .currentTime = 0 が既存コードのまま使える。
-function playAudioFile(path, volume = 1.0, loop = false) {
-    try {
-        const ctx = window.getAudioCtx();
-        // AudioContextがrunning状態ならresume済み→HTMLAudioElementも鳴る
-        if (ctx && ctx.state === 'suspended') {
-            ctx.resume().catch(() => {});
-        }
-        const audio = new Audio(path);
-        audio.volume = volume;
-        audio.loop = loop;
-        audio.play().catch(e => {
-            console.warn('[Audio] play failed (will retry on next touch):', path, e);
-        });
-        return audio;
-    } catch (e) {
-        console.error('[Audio] Error:', path, e);
-        return null;
-    }
+// ★★★ playAudioFile → playAudioSafeのラッパーに統一（iOS Autoplay対策）★★★
+// これにより playAudioFile を使っている全箇所が自動的に resume対応になる
+function playAudioFile(path, volume = 1.0, loop = false, onEnd) {
+    const handle = window.playAudioSafe(path, volume, loop, onEnd);
+    // 既存コードが .pause() / .currentTime を直接叩く場合があるので
+    // audioプロパティがあればそれを、なければハンドル自体を返す
+    return handle && handle.audio ? handle.audio : handle;
 }
 
 // ★★★ rAF内でも確実に鳴らしたい音専用の再生関数 ★★★
@@ -360,7 +325,6 @@ window.playAudioSafe = function(path, volume, loop, onEnd) {
 
     // ★ バッファキャッシュ済みだがctxがまだsuspended → resume完了後にWeb Audio再生
     if (ctx && ctx.state !== 'running' && window._audioBufferCache[path]) {
-        // ダミーオブジェクト（pauseで後から止められるように）
         let srcRef = null;
         const handle = {
             pause: () => { try { if (srcRef) srcRef.pause(); } catch(e){} },
@@ -370,7 +334,6 @@ window.playAudioSafe = function(path, volume, loop, onEnd) {
             const inner = _playBuffer(ctx, window._audioBufferCache[path], volume, !!loop, onEnd);
             srcRef = inner;
         }).catch(() => {
-            // resume失敗時はHTMLAudioにフォールバック
             const a = new Audio(path);
             a.volume = volume; a.loop = !!loop;
             a.play().catch(() => {});
@@ -396,17 +359,46 @@ window.playAudioSafe = function(path, volume, loop, onEnd) {
 window._preloadAudioFiles = function() {
     const ctx = window.getAudioCtx();
     if (!ctx) return;
-    // ★ SOUNDS定数から正確なパスを取得
+    // ★★★ 全重要音声をプリロード（スマホrAF内再生対策）★★★
     const preloadList = [
+        // 穴→かごめ→赤女シーケンス
         'sounds/suzu.mp3',
         'sounds/kagome.mp3',
         'sounds/akanoonnnaima.mp3',
-        'sounds/mamono_aaa.mp3'
+        'sounds/mamono_aaa.mp3',
+        // 青の部屋
+        'sounds/aozenntai.mp3',
+        // 影の部屋
+        'sounds/kagenoonnna1.mp3',
+        // エラー画面・ノイズの女
+        'sounds/eraaonn.mp3',
+        'sounds/noizunoonnna.mp3',
+        'sounds/corruption.mp3',
+        // かくれんぼ
+        'sounds/asobo.mp3',
+        'sounds/kuraiheya1.mp3',
+        'sounds/mouiikai1.mp3',
+        'sounds/madadayo1.mp3',
+        'sounds/mouiiyo.mp3',
+        'sounds/0mituketa2.mp3',
+        'sounds/mituketa2.mp3',
+        // ti/da部屋
+        'sounds/ti.mp3',
+        'sounds/da5.mp3',
+        // グロ部屋
+        'sounds/gurobeya.mp3',
+        'sounds/gurobeyaima.mp3',
+        'sounds/gurobeyagennkann.mp3',
+        'sounds/gurobeyadatuizyo.mp3',
+        'sounds/gurobeyaohuro.mp3',
+        // その他
+        'sounds/na1.mp3',
+        'sounds/hauotoko.mp3',
     ];
     preloadList.forEach(path => {
         if (window._audioBufferCache[path]) return;
         fetch(path)
-            .then(r => r.arrayBuffer())
+            .then(r => { if (!r.ok) throw new Error(r.status); return r.arrayBuffer(); })
             .then(ab => ctx.decodeAudioData(ab))
             .then(buf => {
                 window._audioBufferCache[path] = buf;
@@ -676,11 +668,7 @@ window.daStartPhaseTimer = function(phase) {
                 window.isInputLocked = true;
                 console.log('[DaSeq] da5 reached - input locked for auto transition');
 
-                try {
-                    const a = new Audio('sounds/da5.mp3');
-                    a.volume = 1.0;
-                    a.play().catch(() => {});
-                } catch (e) {}
+                window.playAudioSafe('sounds/da5.mp3', 1.0, false);
 
                 if (window.da5Shake) {
                     window.da5Shake.active = true;
@@ -801,9 +789,7 @@ function showNewNotification() {
     }, 500);
 
     setTimeout(() => {
-        const notifyAudio = new Audio('sounds/na1.mp3');
-        notifyAudio.volume = 0.75;
-        notifyAudio.play().catch(e => console.log('[Audio] 通知音失敗:', e));
+        window.playAudioSafe('sounds/na1.mp3', 0.75, false);
     }, 600);
 
     setTimeout(() => {
@@ -1199,18 +1185,11 @@ function showFakeCrash() {
     });
 }
 
-// ★★★ MP3に変更：侵食ノイズ ★★★
+// ★★★ 侵食ノイズ（iOS対応版）★★★
 function playNoiseSound(seconds) {
-    const audio = new Audio(SOUNDS.corruption);
-    audio.volume = 0.5;
-    audio.loop = true;
-    
-    audio.play().catch(e => console.log('[Audio] 侵食音再生失敗:', e));
-    
-    // 指定秒数後に停止
+    const handle = window.playAudioSafe(SOUNDS.corruption, 0.5, true);
     setTimeout(() => {
-        audio.pause();
-        audio.currentTime = 0;
+        try { handle.pause(); } catch(e) {}
     }, seconds * 1000);
 }
 
@@ -2791,21 +2770,17 @@ function animate() {
 
             // 穴をだいたい見ているときだけ鈴を鳴らす
             if (dist < holeThreshold) {
-                // ★★★ スマホ対応：鈴はsetTimeoutベースで管理（rAF内タイマー積算廃止）★★★
-                // ズーム量に応じて「鈴が鳴る間隔」を変える
+                // ★★★ スマホ対応：setTimeoutベースで管理（rAF内タイマー積算廃止）★★★
                 const maxInterval = 3000;
                 const minInterval = 300;
                 const interval = maxInterval - zoomAmount * (maxInterval - minInterval);
 
-                // suzuTimeoutが未設定の場合のみ次の鈴をスケジュール
                 if (!window.anaSequence.suzuTimeout && !window.anaSequence.suzuScheduled) {
                     window.anaSequence.suzuScheduled = true;
                     window.anaSequence.suzuTimeout = setTimeout(() => {
                         window.anaSequence.suzuTimeout = null;
                         window.anaSequence.suzuScheduled = false;
-                        // フェーズが変わっていたら鳴らさない
                         if (!window.anaSequence.active || window.anaSequence.phase !== 'hole') return;
-                        // 穴をまだ見ていなければ鳴らさない（distはクロージャで古いが許容）
                         if (window.anaSequence.suzuOneShotAudio) {
                             try {
                                 window.anaSequence.suzuOneShotAudio.pause();
@@ -2819,10 +2794,9 @@ function animate() {
                     }, interval);
                 }
 
-                // MAXまで拡大したら次フェーズへ（一度だけ実行するためphaseを即変更）
+                // MAXまで拡大したら次フェーズへ
                 if (zoomAmount > 0.97) {
-                    window.anaSequence.suzuTimerMs = 0;
-                    // ★ setTimeoutベースの鈴スケジュールもキャンセル
+                    // suzuTimeoutキャンセル
                     if (window.anaSequence.suzuTimeout) {
                         clearTimeout(window.anaSequence.suzuTimeout);
                         window.anaSequence.suzuTimeout = null;
@@ -2933,15 +2907,13 @@ function animate() {
                     }, 220);
                 }
             } else {
-                // 穴から視線が外れたらタイマーをリセット（鈴は鳴らない）
-                window.anaSequence.suzuTimerMs = 0;
-                // ★ setTimeoutベースのスケジュールもキャンセル
+                // 穴から視線が外れたらタイマーリセット
                 if (window.anaSequence.suzuTimeout) {
                     clearTimeout(window.anaSequence.suzuTimeout);
                     window.anaSequence.suzuTimeout = null;
                 }
                 window.anaSequence.suzuScheduled = false;
-                // 鳴っている途中の鈴も止める
+                window.anaSequence.suzuTimerMs = 0;
                 if (window.anaSequence.suzuOneShotAudio) {
                     try {
                         window.anaSequence.suzuOneShotAudio.pause();
